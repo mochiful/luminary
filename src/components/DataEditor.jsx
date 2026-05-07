@@ -1,0 +1,251 @@
+import { useState, useRef } from 'react'
+
+export default function DataEditor({ initialData, onBack, onNext }) {
+  const [data, setData] = useState(() => ({
+    ...initialData,
+    skills: initialData.skills || [],
+    experience: initialData.experience || [],
+    education: initialData.education || [],
+  }))
+  const [skillInput, setSkillInput] = useState('')
+  const [error, setError] = useState(null)
+
+  function set(field, value) {
+    setData(d => ({ ...d, [field]: value }))
+  }
+
+  function addSkill() {
+    const s = skillInput.trim()
+    if (s && !data.skills.includes(s)) {
+      set('skills', [...data.skills, s])
+    }
+    setSkillInput('')
+  }
+
+  function removeSkill(idx) {
+    set('skills', data.skills.filter((_, i) => i !== idx))
+  }
+
+  function updateExp(idx, field, value) {
+    const updated = data.experience.map((e, i) => i === idx ? { ...e, [field]: value } : e)
+    set('experience', updated)
+  }
+
+  function addExp() {
+    set('experience', [
+      ...data.experience,
+      { id: createId(), company: '', role: '', dates: '', description: '' },
+    ])
+  }
+
+  function removeExp(idx) {
+    set('experience', data.experience.filter((_, i) => i !== idx))
+  }
+
+  function updateEdu(idx, field, value) {
+    const updated = data.education.map((e, i) => i === idx ? { ...e, [field]: value } : e)
+    set('education', updated)
+  }
+
+  function addEdu() {
+    set('education', [
+      ...data.education,
+      { id: createId(), school: '', degree: '', field: '', dates: '' },
+    ])
+  }
+
+  function removeEdu(idx) {
+    set('education', data.education.filter((_, i) => i !== idx))
+  }
+
+  function handleNext() {
+    if (!data.name.trim()) {
+      setError('Please enter a name before continuing.')
+      return
+    }
+    onNext(data)
+  }
+
+  return (
+    <>
+      <div style={{ textAlign: 'center', maxWidth: 560 }}>
+        <div style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: 11,
+          color: 'var(--amber)',
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          marginBottom: 16,
+        }}>
+          Step 2 of 4
+        </div>
+        <h1 className="page-title" style={{ fontSize: 36 }}>
+          Review <em>extracted</em> data
+        </h1>
+        <p className="page-subtitle" style={{ marginBottom: 40 }}>
+          Check the fields below and correct anything the parser missed. Everything is editable.
+        </p>
+      </div>
+
+      <div style={{ width: '100%', maxWidth: 720 }}>
+        {/* Basics */}
+        <Section title="Basics">
+          <div className="editor-grid">
+            <Field label="Full Name *" value={data.name} onChange={v => set('name', v)} placeholder="Jane Smith" />
+            <Field label="Headline / Title" value={data.title} onChange={v => set('title', v)} placeholder="Senior Product Designer" />
+            <Field label="Email" value={data.email} onChange={v => set('email', v)} placeholder="jane@example.com" />
+            <Field label="Phone" value={data.phone} onChange={v => set('phone', v)} placeholder="+1 555 000 0000" />
+            <Field label="Location" value={data.location} onChange={v => set('location', v)} placeholder="San Francisco, CA" />
+            <Field label="Website" value={data.website} onChange={v => set('website', v)} placeholder="https://jane.dev" />
+            <Field label="LinkedIn URL" value={data.linkedin} onChange={v => set('linkedin', v)} placeholder="https://linkedin.com/in/..." />
+            <Field label="GitHub URL" value={data.github} onChange={v => set('github', v)} placeholder="https://github.com/..." />
+          </div>
+          <div style={{ marginTop: 14 }}>
+            <Field label="Summary" value={data.summary} onChange={v => set('summary', v)} multiline placeholder="A brief professional summary..." />
+          </div>
+        </Section>
+
+        {/* Skills */}
+        <Section title="Skills">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+            {data.skills.map((skill, i) => (
+              <span key={i} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                background: 'var(--bg-3)', border: '1px solid var(--border-light)',
+                borderRadius: 20, padding: '4px 12px',
+                fontSize: 13, color: 'var(--text-2)',
+              }}>
+                {skill}
+                <button
+                  onClick={() => removeSkill(i)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)', lineHeight: 1, padding: 0, fontSize: 14 }}
+                  aria-label={`Remove ${skill}`}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+            {data.skills.length === 0 && (
+              <span style={{ fontSize: 13, color: 'var(--text-3)', fontStyle: 'italic' }}>No skills yet</span>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              className="form-input"
+              value={skillInput}
+              onChange={e => setSkillInput(e.target.value)}
+              placeholder="Type a skill and press Enter"
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill() } }}
+            />
+            <button className="btn btn-ghost" onClick={addSkill} style={{ flexShrink: 0 }}>Add</button>
+          </div>
+        </Section>
+
+        {/* Experience */}
+        <Section
+          title="Experience"
+          action={<button className="btn btn-ghost" style={{ padding: '6px 14px', fontSize: 12 }} onClick={addExp}>+ Add</button>}
+        >
+          {data.experience.length === 0 && (
+            <p style={{ color: 'var(--text-3)', fontSize: 13, fontStyle: 'italic' }}>No experience entries. Click + Add to create one.</p>
+          )}
+          {data.experience.map((exp, i) => (
+            <div key={exp.id} className="editor-entry-card">
+              <div className="editor-entry-grid">
+                <Field label="Company" value={exp.company} onChange={v => updateExp(i, 'company', v)} placeholder="Acme Corp" />
+                <Field label="Role / Title" value={exp.role} onChange={v => updateExp(i, 'role', v)} placeholder="Software Engineer" />
+                <Field label="Dates" value={exp.dates} onChange={v => updateExp(i, 'dates', v)} placeholder="Jan 2021 – Present" />
+              </div>
+              <Field label="Description" value={exp.description} onChange={v => updateExp(i, 'description', v)} multiline placeholder="What did you accomplish?" />
+              <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
+                <button className="btn btn-danger" onClick={() => removeExp(i)}>Remove</button>
+              </div>
+            </div>
+          ))}
+        </Section>
+
+        {/* Education */}
+        <Section
+          title="Education"
+          action={<button className="btn btn-ghost" style={{ padding: '6px 14px', fontSize: 12 }} onClick={addEdu}>+ Add</button>}
+        >
+          {data.education.length === 0 && (
+            <p style={{ color: 'var(--text-3)', fontSize: 13, fontStyle: 'italic' }}>No education entries. Click + Add to create one.</p>
+          )}
+          {data.education.map((edu, i) => (
+            <div key={edu.id} className="editor-entry-card">
+              <div className="editor-entry-grid">
+                <Field label="School" value={edu.school} onChange={v => updateEdu(i, 'school', v)} placeholder="MIT" />
+                <Field label="Degree" value={edu.degree} onChange={v => updateEdu(i, 'degree', v)} placeholder="B.S. Computer Science" />
+                <Field label="Field of Study" value={edu.field} onChange={v => updateEdu(i, 'field', v)} placeholder="Computer Science" />
+                <Field label="Dates" value={edu.dates} onChange={v => updateEdu(i, 'dates', v)} placeholder="2015 – 2019" />
+              </div>
+              <div style={{ marginTop: 4, display: 'flex', justifyContent: 'flex-end' }}>
+                <button className="btn btn-danger" onClick={() => removeEdu(i)}>Remove</button>
+              </div>
+            </div>
+          ))}
+        </Section>
+
+        {error && (
+          <div className="msg-error" style={{ marginBottom: 20 }}>
+            <span>⚠</span> {error}
+          </div>
+        )}
+
+        <div className="action-row" style={{ justifyContent: 'flex-end', paddingBottom: 40 }}>
+          <button className="btn btn-ghost" onClick={onBack}>← Back</button>
+          <button className="btn btn-primary" onClick={handleNext}>Choose Layout →</button>
+        </div>
+      </div>
+    </>
+  )
+}
+
+function createId() {
+  return globalThis.crypto?.randomUUID?.() || `id-${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+function Section({ title, children, action }) {
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: 16, paddingBottom: 10,
+        borderBottom: '1px solid var(--border)',
+      }}>
+        <h2 style={{
+          fontFamily: 'var(--font-display)',
+          fontWeight: 700, fontSize: 15,
+          letterSpacing: '-0.01em',
+        }}>{title}</h2>
+        {action}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+function Field({ label, value, onChange, placeholder, multiline }) {
+  return (
+    <div className="form-group">
+      <label className="form-label">{label}</label>
+      {multiline ? (
+        <textarea
+          className="form-textarea"
+          value={value || ''}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder}
+          rows={3}
+        />
+      ) : (
+        <input
+          className="form-input"
+          value={value || ''}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder}
+        />
+      )}
+    </div>
+  )
+}

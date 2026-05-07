@@ -1,0 +1,23 @@
+{
+  "name": "portfolio-generator",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "postinstall": "cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/",
+    "predev": "cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/",
+    "dev": "vite",
+    "prebuild": "cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "pdfjs-dist": "4.10.38",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.1",
+    "vite": "^8.0.11"
+  }
+}
