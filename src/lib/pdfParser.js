@@ -12,6 +12,10 @@ const SECTION_NAMES = [
   'WORK HISTORY',
   'EDUCATION',
   'ACADEMIC BACKGROUND',
+  'SKILLS & INTEREST',
+  'SKILLS & INTERESTS',
+  'SKILLS AND INTEREST',
+  'SKILLS AND INTERESTS',
   'SKILLS',
   'TECHNICAL SKILLS',
   'CORE COMPETENCIES',
@@ -44,6 +48,7 @@ const MONTH_RE = 'Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?
 const DATE_TOKEN_RE = `(?:${MONTH_RE})\\.?\\s+\\d{4}|\\d{4}`
 const DATE_RANGE_RE = new RegExp(`(${DATE_TOKEN_RE})\\s*(?:-|–|—|to)\\s*(${DATE_TOKEN_RE}|Present|Current|Now)`, 'gi')
 const EXPECTED_GRAD_RE = new RegExp(`\\b(?:Expected\\s+)?Graduation\\s+(?:Date\\s+)?(?:${MONTH_RE})\\.?\\s+\\d{4}\\b`, 'i')
+const MONTH_YEAR_RE = new RegExp(`\\b(?:${MONTH_RE})\\.?\\s+\\d{4}\\b`, 'i')
 const YEAR_ONLY_RE = /\b(19|20)\d{2}\b/
 const BULLET_RE = /^[•●▪▸*-]\s*/
 const BULLET_ONLY_RE = /^[•●▪▸*-]$/
@@ -342,6 +347,12 @@ function parseExperienceOrEducation(text, type) {
     const grad = type === 'education' ? line.match(EXPECTED_GRAD_RE) : null
     if (grad) { datelines.push({ lineIdx: i, dateStr: grad[0] }); continue }
 
+    const educationDate = type === 'education' ? line.match(MONTH_YEAR_RE) : null
+    if (educationDate && looksLikeEducationDateLine(lines, i)) {
+      datelines.push({ lineIdx: i, dateStr: educationDate[0] })
+      continue
+    }
+
     DATE_RANGE_RE.lastIndex = 0
     const m = line.match(DATE_RANGE_RE)
     if (m) { datelines.push({ lineIdx: i, dateStr: m[0] }); continue }
@@ -444,12 +455,23 @@ function normalizeResumeLines(text) {
 }
 
 function getDateLineRemainder(line) {
+  DATE_RANGE_RE.lastIndex = 0
   return line
     .replace(EXPECTED_GRAD_RE, '')
     .replace(DATE_RANGE_RE, '')
+    .replace(MONTH_YEAR_RE, '')
     .replace(YEAR_ONLY_RE, '')
-    .replace(/[\s|\-–—·,\/]+/g, ' ')
+    .replace(/[\s|\-–—·\/]+/g, ' ')
     .trim()
+}
+
+function looksLikeEducationDateLine(lines, idx) {
+  const window = lines
+    .slice(Math.max(0, idx - 1), Math.min(lines.length, idx + 3))
+    .map(line => line.text)
+    .join(' ')
+
+  return DEGREE_RE.test(window) || /college|university|school|academy|institute|cuny/i.test(window)
 }
 
 function findHeaderStart(lines, dateLineIdx, lowerBound, dateLineRemainder) {
@@ -477,13 +499,24 @@ function looksLikeHeaderLine(line) {
 }
 
 function splitHeaderParts(line) {
-  return stripLocationSuffix(line)
+  return cleanHeaderLine(line)
     .split(/\s{2,}|\s+[|]\s+|\s+-\s+/)
     .map(part => part.trim())
     .filter(Boolean)
 }
 
+function cleanHeaderLine(line) {
+  return stripLocationSuffix(line)
+    .replace(/\s*,?\s*GPA\s*:?\s*\d+(?:\.\d+)?(?:\s*\/\s*\d+(?:\.\d+)?)?/i, '')
+    .replace(/\s*,?\s*Minors?\s*:.*$/i, '')
+    .replace(/\s*\|\s*$/g, '')
+    .replace(/\s*,\s*$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function stripLocationSuffix(line) {
+  line = line.trim().replace(/\s*,\s*$/, '')
   const stateMatch = line.match(/,\s*(?:[A-Z]{2}|[A-Z][A-Za-z .'-]+)$/)
   if (!stateMatch) return line.trim()
 
@@ -505,10 +538,10 @@ function stripLocationSuffix(line) {
   ])
 
   if (commonTwoWordCities.has(cityTwoWord)) {
-    return words.slice(0, -2).join(' ').trim()
+    return words.slice(0, -2).join(' ').replace(/\s*,\s*$/, '').trim()
   }
 
-  return words.slice(0, -1).join(' ').trim()
+  return words.slice(0, -1).join(' ').replace(/\s*,\s*$/, '').trim()
 }
 
 function buildDescription(descLines) {
@@ -578,6 +611,9 @@ function buildEducationEntry(headerCandidates, descLines, dateStr) {
   if (degreeRealIdx !== -1) {
     degree = candidates[degreeRealIdx]
     school = candidates.find((_, i) => i !== degreeRealIdx) || ''
+    field = candidates[degreeRealIdx + 1] && !DEGREE_RE.test(candidates[degreeRealIdx + 1])
+      ? candidates[degreeRealIdx + 1]
+      : ''
   } else {
     // No degree keyword: first candidate is the school, second is the degree (or a field)
     school = candidates[0] || ''
@@ -589,6 +625,12 @@ function buildEducationEntry(headerCandidates, descLines, dateStr) {
   if (fieldMatch) {
     field = fieldMatch[1].trim()
     degree = degree.slice(0, fieldMatch.index).trim()
+  }
+
+  const pipeParts = degree.split('|').map(part => part.trim()).filter(Boolean)
+  if (pipeParts.length > 1) {
+    degree = pipeParts[0]
+    field = pipeParts[1]
   }
 
   return {
