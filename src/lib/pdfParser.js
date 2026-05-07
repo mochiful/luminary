@@ -26,7 +26,11 @@ const SECTION_NAMES = [
   'PROJECTS',
   'LEADERSHIP & ACTIVITIES',
   'LEADERSHIP AND ACTIVITIES',
+  'LEADERSHIP/ EXTRACURRICULAR ACTIVITIES',
+  'LEADERSHIP / EXTRACURRICULAR ACTIVITIES',
+  'EXTRACURRICULAR ACTIVITIES',
   'ACTIVITIES',
+  'FINANCE SIMULATION EXPERIENCE',
   'CERTIFICATIONS',
   'LANGUAGES',
   'CONTACT',
@@ -52,6 +56,7 @@ const MONTH_YEAR_RE = new RegExp(`\\b(?:${MONTH_RE})\\.?\\s+\\d{4}\\b`, 'i')
 const YEAR_ONLY_RE = /\b(19|20)\d{2}\b/
 const BULLET_RE = /^[•●▪▸*-]\s*/
 const BULLET_ONLY_RE = /^[•●▪▸*-]$/
+const CONTACT_SEPARATOR_RE = /\s*[|•▪]\s*/
 
 function createId() {
   return globalThis.crypto?.randomUUID?.() || `id-${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -228,6 +233,7 @@ function extractLocation(lines, email, phone, name, title) {
   const LOCATION_RE = /,\s*(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY|DC)\b/
   // City, Country pattern (e.g. "London, UK" or "Toronto, Canada")
   const CITY_COUNTRY_RE = /^[A-Z][a-zA-Z\s\-\.]+,\s+[A-Z][a-zA-Z\s]{1,25}$/
+  const CITY_STATE_ZIP_RE = /^[A-Z][a-zA-Z\s.\-']+,\s*(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY|DC)(?:,\s*\d{5}(?:-\d{4})?)?$/
 
   const isContactInfo = line =>
     EMAIL_RE.test(line) ||
@@ -239,9 +245,10 @@ function extractLocation(lines, email, phone, name, title) {
   for (const line of lines) {
     if (isContactInfo(line)) {
       const contactLocation = line
-        .split(/\s*[|•]\s*/)
-        .find(part => LOCATION_RE.test(part) || CITY_COUNTRY_RE.test(part))
-      if (contactLocation) return contactLocation.trim()
+        .split(CONTACT_SEPARATOR_RE)
+        .map(part => part.trim())
+        .find(part => isLocationCandidate(part))
+      if (contactLocation) return cleanLocation(contactLocation)
     }
   }
 
@@ -249,8 +256,18 @@ function extractLocation(lines, email, phone, name, title) {
     if (isContactInfo(line)) return false
     if (line === name || line === title) return false
     if (SECTION_RE.test(line)) return false
-    return LOCATION_RE.test(line) || CITY_COUNTRY_RE.test(line)
+    return isLocationCandidate(line)
   }) || ''
+
+  function isLocationCandidate(part) {
+    if (!part || isContactInfo(part)) return false
+    return LOCATION_RE.test(part) || CITY_COUNTRY_RE.test(part) || CITY_STATE_ZIP_RE.test(part)
+  }
+
+  function cleanLocation(part) {
+    const match = part.match(/^(.+?,\s*[A-Z]{2})(?:,\s*\d{5}(?:-\d{4})?)?$/)
+    return (match ? match[1] : part).trim()
+  }
 }
 
 function splitIntoSections(text) {
@@ -286,12 +303,13 @@ function extractSkills(sections) {
   const key = Object.keys(sections).find(k => /SKILL|COMPETENC|TECHNICAL/.test(k))
   if (!key) return []
   const raw = normalizeResumeLines(sections[key])
-    .map(line => line.text.replace(/^(?:Technical Skills|Language|Languages|Tools|Skills)\s*:\s*/i, ''))
+    .filter(line => !/^(?:Interests?|Hobbies)\s*:/i.test(line.text))
+    .map(line => line.text.replace(/^(?:Technical Skills?|Language|Languages|Tools|Skills?)\s*:\s*/i, ''))
     .join('\n')
 
   return splitSkillText(raw)
     .map(s => s.trim().replace(/^[-–—·\s]+/, '').trim())
-    .filter(s => s.length > 1 && s.length < 50 && !hasDateRange(s))
+    .filter(s => s.length > 1 && s.length < 50 && !hasDateRange(s) && !/^(?:Interests?|Hobbies)\s*:/i.test(s))
     .filter((s, i, arr) => arr.findIndex(v => v.toLowerCase() === s.toLowerCase()) === i)
 }
 
@@ -425,7 +443,7 @@ function parseExperienceOrEducation(text, type) {
 }
 
 const ROLE_RE = /engineer|developer|manager|director|designer|analyst|scientist|lead|architect|consultant|intern|coordinator|specialist|officer|executive|president|secretary|mentee|fellow|\bvp\b|cto|ceo|cfo|founder|researcher|writer|editor|associate/i
-const DEGREE_RE = /bachelor|master|doctor|\bphd\b|b\.?s\.?|m\.?s\.?|b\.?a\.?|m\.?a\.?|m\.?b\.?a\.?|associate|diploma|certificate|b\.?eng|m\.?eng|\bllb\b|\bjd\b/i
+const DEGREE_RE = /bachelor|master|doctor|\bphd\b|\bb\.?\s?s\.?\b|\bm\.?\s?s\.?\b|\bb\.?\s?a\.?\b|\bm\.?\s?a\.?\b|\bm\.?\s?b\.?\s?a\.?\b|associate|diploma|certificate|\bb\.?\s?eng\.?\b|\bm\.?\s?eng\.?\b|\bllb\b|\bjd\b/i
 
 function normalizeResumeLines(text) {
   const output = []
@@ -461,6 +479,7 @@ function getDateLineRemainder(line) {
     .replace(DATE_RANGE_RE, '')
     .replace(MONTH_YEAR_RE, '')
     .replace(YEAR_ONLY_RE, '')
+    .replace(/\bExpected\b/i, '')
     .replace(/[\s|\-–—·\/]+/g, ' ')
     .trim()
 }
@@ -604,20 +623,31 @@ function buildEducationEntry(headerCandidates, descLines, dateStr) {
   let school = '', degree = '', field = ''
   const candidates = headerCandidates.flatMap(splitHeaderParts)
 
-  // Prefer the line closest to the date that matches degree keywords
-  const degreeIdx = candidates.slice().reverse().findIndex(l => DEGREE_RE.test(l))
-  const degreeRealIdx = degreeIdx === -1 ? -1 : candidates.length - 1 - degreeIdx
+  if (candidates.length === 1) {
+    const combined = splitCombinedEducationLine(candidates[0])
+    if (combined) {
+      school = combined.school
+      degree = combined.degree
+      field = combined.field
+    }
+  }
 
-  if (degreeRealIdx !== -1) {
-    degree = candidates[degreeRealIdx]
-    school = candidates.find((_, i) => i !== degreeRealIdx) || ''
-    field = candidates[degreeRealIdx + 1] && !DEGREE_RE.test(candidates[degreeRealIdx + 1])
-      ? candidates[degreeRealIdx + 1]
-      : ''
-  } else {
-    // No degree keyword: first candidate is the school, second is the degree (or a field)
-    school = candidates[0] || ''
-    degree = candidates[1] || ''
+  // Prefer the line closest to the date that matches degree keywords
+  if (!school && !degree) {
+    const degreeIdx = candidates.slice().reverse().findIndex(l => DEGREE_RE.test(l))
+    const degreeRealIdx = degreeIdx === -1 ? -1 : candidates.length - 1 - degreeIdx
+
+    if (degreeRealIdx !== -1) {
+      degree = candidates[degreeRealIdx]
+      school = candidates.find((_, i) => i !== degreeRealIdx) || ''
+      field = candidates[degreeRealIdx + 1] && !DEGREE_RE.test(candidates[degreeRealIdx + 1])
+        ? candidates[degreeRealIdx + 1]
+        : ''
+    } else {
+      // No degree keyword: first candidate is the school, second is the degree (or a field)
+      school = candidates[0] || ''
+      degree = candidates[1] || ''
+    }
   }
 
   // Extract field of study from phrases like "Bachelor of Business Administration in Accounting".
@@ -640,4 +670,34 @@ function buildEducationEntry(headerCandidates, descLines, dateStr) {
     field: field.slice(0, 80),
     dates: dateStr,
   }
+}
+
+function splitCombinedEducationLine(line) {
+  const degreeMatch = line.match(DEGREE_RE)
+  if (!degreeMatch) return null
+
+  const beforeDegree = line.slice(0, degreeMatch.index).trim()
+  if (!/college|university|school|academy|institute|cuny/i.test(beforeDegree)) return null
+
+  const afterDegree = line.slice(degreeMatch.index).trim()
+  const school = cleanHeaderLine(beforeDegree)
+  let degree = cleanHeaderLine(afterDegree)
+    .replace(/\bExpected\b.*$/i, '')
+    .replace(/\bRelevant (?:Classes|Coursework)\b.*$/i, '')
+    .trim()
+  let field = ''
+
+  const fieldMatch = degree.match(/\s+in\s+([A-Za-z][A-Za-z\s&]+?)(?:\s*[,;·|]|$)/i)
+  if (fieldMatch) {
+    field = fieldMatch[1].trim()
+    degree = degree.slice(0, fieldMatch.index).trim()
+  }
+
+  const pipeParts = degree.split('|').map(part => part.trim()).filter(Boolean)
+  if (pipeParts.length > 1) {
+    degree = pipeParts[0]
+    field = pipeParts[1]
+  }
+
+  return school || degree ? { school, degree, field } : null
 }
