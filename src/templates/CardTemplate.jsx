@@ -405,36 +405,22 @@ export default function CardTemplate({ data }) {
                 {data.github && <a href={data.github} target="_blank" rel="noopener noreferrer">GitHub ↗</a>}
                 {data.website && <a href={data.website} target="_blank" rel="noopener noreferrer">{data.website.replace(/^https?:\/\//, '')} ↗</a>}
               </div>
-              {data.skills?.length > 0 && (
-                <div className="skills-inline">
-                  {data.skills.slice(0, 10).map((skill, i) => (
-                    <span key={i} className="skill-pill">{skill}</span>
-                  ))}
-                  {data.skills.length > 10 && (
-                    <span className="skill-pill">+{data.skills.length - 10} more</span>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </header>
 
         <div className="main">
-          {data.summary && (
+          {data.education?.length > 0 && (
             <section>
-              <div className="section-title">About</div>
-              <div className="summary-card">
-                <p className="summary-text">{data.summary}</p>
-              </div>
-            </section>
-          )}
-
-          {data.skills?.length > 0 && (
-            <section>
-              <div className="section-title">Skills &amp; Technologies</div>
-              <div className="skills-full">
-                {data.skills.map((skill, i) => (
-                  <span key={i} className="skill-card">{skill}</span>
+              <div className="section-title">Education</div>
+              <div className="edu-grid">
+                {data.education.map((edu, i) => (
+                  <div key={i} className="edu-card">
+                    <div className="edu-degree">{edu.degree}</div>
+                    {edu.field && <div className="edu-field">{edu.field}</div>}
+                    <div className="edu-school">{edu.school}</div>
+                    <div className="edu-dates">{edu.dates}</div>
+                  </div>
                 ))}
               </div>
             </section>
@@ -459,18 +445,11 @@ export default function CardTemplate({ data }) {
             </section>
           )}
 
-          {data.education?.length > 0 && (
+          {data.summary && (
             <section>
-              <div className="section-title">Education</div>
-              <div className="edu-grid">
-                {data.education.map((edu, i) => (
-                  <div key={i} className="edu-card">
-                    <div className="edu-degree">{edu.degree}</div>
-                    {edu.field && <div className="edu-field">{edu.field}</div>}
-                    <div className="edu-school">{edu.school}</div>
-                    <div className="edu-dates">{edu.dates}</div>
-                  </div>
-                ))}
+              <div className="section-title">About</div>
+              <div className="summary-card">
+                <p className="summary-text">{data.summary}</p>
               </div>
             </section>
           )}
@@ -493,6 +472,17 @@ export default function CardTemplate({ data }) {
               </div>
             </section>
           ))}
+
+          {data.skills?.length > 0 && (
+            <section>
+              <div className="section-title">Skills &amp; Technologies</div>
+              <div className="skills-full">
+                {data.skills.map((skill, i) => (
+                  <span key={i} className="skill-card">{skill}</span>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
 
         <footer>

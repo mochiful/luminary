@@ -264,21 +264,21 @@ export default function ScrollingTemplate({ data }) {
         </header>
 
         <main className="content">
-          {data.summary && (
+          {data.education?.length > 0 && (
             <section className="section">
-              <div className="section-label">About</div>
-              <p className="summary-text">{data.summary}</p>
-            </section>
-          )}
-
-          {data.skills?.length > 0 && (
-            <section className="section">
-              <div className="section-label">Skills</div>
-              <div className="skills-list">
-                {data.skills.map((skill, i) => (
-                  <span key={i} className="skill-tag">{skill}</span>
-                ))}
-              </div>
+              <div className="section-label">Education</div>
+              {data.education.map((edu, i) => (
+                <div key={i} className="entry">
+                  <div className="entry-meta">
+                    <div className="entry-dates">{edu.dates}</div>
+                    <div className="entry-school">{edu.school}</div>
+                  </div>
+                  <div>
+                    <div className="entry-degree">{edu.degree}</div>
+                    {edu.field && <p className="entry-field">{edu.field}</p>}
+                  </div>
+                </div>
+              ))}
             </section>
           )}
 
@@ -300,21 +300,10 @@ export default function ScrollingTemplate({ data }) {
             </section>
           )}
 
-          {data.education?.length > 0 && (
+          {data.summary && (
             <section className="section">
-              <div className="section-label">Education</div>
-              {data.education.map((edu, i) => (
-                <div key={i} className="entry">
-                  <div className="entry-meta">
-                    <div className="entry-dates">{edu.dates}</div>
-                    <div className="entry-school">{edu.school}</div>
-                  </div>
-                  <div>
-                    <div className="entry-degree">{edu.degree}</div>
-                    {edu.field && <p className="entry-field">{edu.field}</p>}
-                  </div>
-                </div>
-              ))}
+              <div className="section-label">About</div>
+              <p className="summary-text">{data.summary}</p>
             </section>
           )}
 
@@ -336,6 +325,17 @@ export default function ScrollingTemplate({ data }) {
               ))}
             </section>
           ))}
+
+          {data.skills?.length > 0 && (
+            <section className="section">
+              <div className="section-label">Skills</div>
+              <div className="skills-list">
+                {data.skills.map((skill, i) => (
+                  <span key={i} className="skill-tag">{skill}</span>
+                ))}
+              </div>
+            </section>
+          )}
         </main>
 
         <footer>

@@ -391,13 +391,13 @@ export default function NavTemplate({ data }) {
         <nav>
           <div className="nav-name">{data.name || 'Portfolio'}</div>
           <ul className="nav-links">
-            {hasAbout && <li><a href="#about">About</a></li>}
-            {hasSkills && <li><a href="#skills">Skills</a></li>}
-            {hasExp && <li><a href="#experience">Experience</a></li>}
             {hasEdu && <li><a href="#education">Education</a></li>}
+            {hasExp && <li><a href="#experience">Experience</a></li>}
+            {hasAbout && <li><a href="#about">About</a></li>}
             {customSections.map(section => (
               <li key={section.id}><a href={`#${section.anchor}`}>{section.title}</a></li>
             ))}
+            {hasSkills && <li><a href="#skills">Skills</a></li>}
           </ul>
         </nav>
 
@@ -422,22 +422,18 @@ export default function NavTemplate({ data }) {
           </div>
         </div>
 
-        {hasAbout && (
-          <section id="about" className="section">
+        {hasEdu && (
+          <section id="education" className="section">
             <div className="section-inner">
-              <h2 className="section-heading">About</h2>
-              <p className="summary-text">{data.summary}</p>
-            </div>
-          </section>
-        )}
-
-        {hasSkills && (
-          <section id="skills" className="section">
-            <div className="section-inner">
-              <h2 className="section-heading">Skills</h2>
-              <div className="skills-grid">
-                {data.skills.map((skill, i) => (
-                  <span key={i} className="skill-chip">{skill}</span>
+              <h2 className="section-heading">Education</h2>
+              <div className="edu-grid">
+                {data.education.map((edu, i) => (
+                  <div key={i} className="edu-card">
+                    <div className="edu-degree">{edu.degree}</div>
+                    {edu.field && <div className="edu-field">{edu.field}</div>}
+                    <div className="edu-school">{edu.school}</div>
+                    <div className="edu-dates">{edu.dates}</div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -466,20 +462,11 @@ export default function NavTemplate({ data }) {
           </section>
         )}
 
-        {hasEdu && (
-          <section id="education" className="section">
+        {hasAbout && (
+          <section id="about" className="section">
             <div className="section-inner">
-              <h2 className="section-heading">Education</h2>
-              <div className="edu-grid">
-                {data.education.map((edu, i) => (
-                  <div key={i} className="edu-card">
-                    <div className="edu-degree">{edu.degree}</div>
-                    {edu.field && <div className="edu-field">{edu.field}</div>}
-                    <div className="edu-school">{edu.school}</div>
-                    <div className="edu-dates">{edu.dates}</div>
-                  </div>
-                ))}
-              </div>
+              <h2 className="section-heading">About</h2>
+              <p className="summary-text">{data.summary}</p>
             </div>
           </section>
         )}
@@ -506,6 +493,19 @@ export default function NavTemplate({ data }) {
             </div>
           </section>
         ))}
+
+        {hasSkills && (
+          <section id="skills" className="section">
+            <div className="section-inner">
+              <h2 className="section-heading">Skills</h2>
+              <div className="skills-grid">
+                {data.skills.map((skill, i) => (
+                  <span key={i} className="skill-chip">{skill}</span>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         <footer>
           <p>{data.name} · Built with Luminary</p>
