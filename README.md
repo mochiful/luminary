@@ -13,6 +13,7 @@ The app runs fully in the browser. There is no backend, no account system, and n
   - Education
   - Professional experience
   - Leadership and activities
+  - Additional/custom sections
   - Skills
 - Recognize bullet points, including resumes where `●` appears on its own line.
 - Review and edit all parsed data before export.
@@ -21,6 +22,7 @@ The app runs fully in the browser. There is no backend, no account system, and n
   - Professional fixed-nav layout
   - Modern card/timeline layout
 - Download a single offline-friendly HTML file with inline CSS and embedded photo data.
+- Export portfolio sections in this order: Education, Experience, Additional Sections, Skills.
 
 ## Tech Stack
 
@@ -95,6 +97,13 @@ The package scripts copy the PDF.js worker into `public/pdf.worker.min.mjs` befo
 
 The downloaded file is self-contained and can be opened directly in a browser.
 
+Generated portfolios use the selected visual template, but keep the same section order:
+
+1. Education
+2. Experience
+3. Additional sections, including summary/about content and custom parsed sections
+4. Skills
+
 ## Resume Parsing Notes
 
 The parser is heuristic-based, so the edit step is part of the intended workflow. It is designed for common text-based resumes with section headers such as:
@@ -104,9 +113,25 @@ The parser is heuristic-based, so the edit step is part of the intended workflow
 - `PROFESSIONAL EXPERIENCE`
 - `PROFESSIONAL EXPERIENCES`
 - `LEADERSHIP & ACTIVITIES`
+- `LEADERSHIP/ EXTRACURRICULAR ACTIVITIES`
+- `FINANCE SIMULATION EXPERIENCE`
+- `SKILLS & INTEREST`
 - `SKILLS`
 
 Scanned image PDFs are not supported. If PDF.js extracts too little text, the app shows an error and asks for a text-based PDF.
+
+The parser intentionally excludes `Interests:` and `Hobbies:` lines from skills. If a resume has uncommon formatting, the edit screen is the place to correct or reorganize the extracted data before export.
+
+## Repository Hygiene
+
+The repository ignores local dependencies, logs, macOS metadata, and generated build output:
+
+```gitignore
+node_modules/
+.DS_Store
+*.log
+dist/
+```
 
 ## Deployment
 
